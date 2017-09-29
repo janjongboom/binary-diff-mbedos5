@@ -1,0 +1,28 @@
+{
+    "config": {
+        "sd_card_mosi": {
+            "help": "MCU pin connected to the SD card's SPI MOSI pin",
+            "value": "D11"
+        },
+        "sd_card_miso": {
+            "help": "MCU pin connected to the SD card's SPI MISO pin",
+            "value": "D12"
+        },
+        "sd_card_sck": {
+            "help": "MCU pin connected to the SD card's SPI SCK pin",
+            "value": "D13"
+        },
+        "sd_card_cs": {
+            "help": "MCU pin connected to the SD card's SPI CS pin",
+            "value": "D10"
+        }
+    },
+    "target_overrides": {
+        "K64F": {
+            "sd_card_mosi": "PTE3",
+            "sd_card_miso": "PTE1",
+            "sd_card_sck": "PTE2",
+            "sd_card_cs": "PTE4"
+        }
+    }
+}
