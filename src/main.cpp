@@ -20,42 +20,82 @@
 *******************************************************************************/
 
 #include "mbed.h"
-#include "SDBlockDevice.h"
-#include "FATFileSystem.h"
 #include "jpatch.h"
-
-SDBlockDevice sd(MBED_CONF_APP_SD_CARD_MOSI, MBED_CONF_APP_SD_CARD_MISO,
-    MBED_CONF_APP_SD_CARD_SCK, MBED_CONF_APP_SD_CARD_CS);
-FATFileSystem fs("sd");
+#include "patch.h"
+#include "AT45BlockDevice.h"
+#include "FragmentationSha256.h"
+#include "update_params.h"
 
 int main()
 {
-  sd.init();
-  fs.mount(&sd);
+  // 1. Put original file in 0x1900
+  // 2. Put patch file in 0x1801
+  // 3. Calculate the new file and put in 0x2000
+  // 4. Set update params, and see if we can update...
+  AT45BlockDevice at45;
+  at45.init();
 
-  const char *lcFilNamOrg = "/sd/blinky-k64f-old.bin";
-  const char *lcFilNamPch = "/sd/blinky.patch";
-  const char *lcFilNamOut = "/sd/blinky-k64f-new.bin";
+  // OK, let's give it a try...
+  int r;
+  r = at45.program(ORIGINAL, 0x1900 * at45.get_read_size(), sizeof(ORIGINAL));
+  printf("Programming ORIGINAL in page 0x1900, r=%d\n", r);
 
-  FILE *lpFilOrg = fopen(lcFilNamOrg, "rb");
-  FILE *lpFilPch = fopen(lcFilNamPch, "rb");
-  FILE *lpFilOut = fopen(lcFilNamOut, "wb");
+  printf("sizeof patch is %d\n", sizeof(PATCH));
 
-  printf("made files? %p %p %p\n", lpFilOrg, lpFilPch, lpFilOut);
+  r = at45.program(PATCH, 0x1801 * at45.get_read_size(), sizeof(PATCH));
+  printf("Programming PATCH in page 0x1801, r=%d\n", r);
 
-  int lbOptArgDne=false;
-  int liOptArgCnt=0;
-  char lcHlp='\0';
+  BDFILE originalFile(&at45, 0x1900 * at45.get_read_size(), sizeof(ORIGINAL));
+  BDFILE patchFile(&at45, 0x1801 * at45.get_read_size(), sizeof(PATCH));
+  BDFILE newFile(&at45, 0x2000 * at45.get_read_size(), 0);
 
   printf("HELLO WORLD\n");
 
   /* Go... */
-  jpatch(lpFilOrg, lpFilPch, lpFilOut);
+  jpatch(&originalFile, &patchFile, &newFile);
 
-  /* Close files */
-  fclose(lpFilOrg);
-  fclose(lpFilPch);
-  fclose(lpFilOut);
+  printf("new size is %d\n", newFile.ftell());
+
+  uint8_t* sha_buffer = (uint8_t*)malloc(528);
+  unsigned char sha_out[32];
+
+  FragmentationSha256 sha256(&at45, sha_buffer, sizeof(sha_buffer));
+  // first 256 bytes are the RSA/SHA256 signature, ignore those
+  sha256.calculate(
+      0x2000 * at45.get_read_size(),
+      newFile.ftell(),
+      sha_out);
+
+  free(sha_buffer);
+
+  printf("SHA256 hash is: ");
+  for (size_t ix = 0; ix < 32; ix++) {
+    printf("%02x", sha_out[ix]);
+  }
+  printf("\n");
+
+  bool matches = true;
+  for (size_t ix = 0; ix < 32; ix++) {
+    if (sha_out[ix] != SHA256_HASH[ix]) {
+      matches = false;
+    }
+  }
+
+  if (!matches) {
+    printf("SHA256 hash does not match. Abort!\n");
+    return 1;
+  }
+
+  // Hash is matching, now populate the FOTA_INFO_PAGE with information about the update, so the bootloader can flash the update
+  UpdateParams_t update_params;
+  update_params.update_pending = 1;
+  update_params.size = newFile.ftell();
+  update_params.offset = 0x2000 * at45.get_read_size();
+  update_params.signature = UpdateParams_t::MAGIC;
+  memcpy(update_params.sha256_hash, sha_out, sizeof(sha_out));
+  at45.program(&update_params, FOTA_INFO_PAGE * at45.get_read_size(), sizeof(UpdateParams_t));
+
+  printf("Stored the update parameters in flash on page 0x%x. Reset the board to apply update.\n", FOTA_INFO_PAGE);
 
   printf("I'm done!\n");
 

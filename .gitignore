@@ -1,3 +1,6 @@
 mbed_settings.*
 BUILD/
 .mbed
+at45-blockdevice/
+mbed-lorawan-frag-lib/
+bootloader/xdot-at45-symlinked.bin
