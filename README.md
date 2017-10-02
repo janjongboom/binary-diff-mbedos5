@@ -1,6 +1,6 @@
 # Binary diff application demo
 
-Using [JojoDiff](http://jojodiff.sourceforge.net). Does binary diffing using FATFileSystem on Mbed OS 5.
+Using [JojoDiff](http://jojodiff.sourceforge.net). Does binary diffing using BlockDevice on Mbed OS 5.
 
 Takes:
 
@@ -15,16 +15,15 @@ This application does not use dynamically allocated memory. See the `BLKSZE` mac
 
 ## Usage
 
-1. Put `demo/blinky-k64f-old.bin` and `demo/blinky.patch` on an SD card.
-1. Put SD card in FRDM-K64F development board.
+1. Open `patch.h` and put the old file, the patch, and the SHA256 hash of the new file (see `demo/*.js` for scripts).
 1. Build this application:
 
     ```
-    $ mbed compile -m K64F -t GCC_ARM
+    $ mbed compile -m xdot_l151cc -t GCC_ARM
     ```
 
 1. Run the application and inspect serial output (on baud rate 9,600).
-1. When the application is done, inspect the SD card. `blinky-k64f-new.bin` should have appeared, and it should match the file in the demo directory.
+1. When the application is done, restart the board. The new binary should be running.
 
 ## How to create diffs
 
@@ -32,7 +31,7 @@ This application does not use dynamically allocated memory. See the `BLKSZE` mac
 * Generate a patch file:
 
     ```
-    $ ./jdiff blinky-k64f-old.bin blinky-k64f-new.bin > blinky-k64f.patch
+    $ ./jdiff blinky-xdot-old.bin blinky-xdot-new.bin > blinky-xdot.patch
     ```
 
 ## License
