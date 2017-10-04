@@ -2,6 +2,8 @@
 
 Using [JANPatch](https://github.com/janjongboom/janpatch). Does binary patching of firmware using BlockDevice on Mbed OS 5.
 
+**[There is also a demo which uses an SD-card instead.](http://github.com/janjongboom/binary-diff-mbedos5)**
+
 Takes:
 
 * Source binary.
