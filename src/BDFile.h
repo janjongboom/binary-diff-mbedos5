@@ -1,26 +1,22 @@
-/**
-* Licence
-* -------
+/*
+* PackageLicenseDeclared: Apache-2.0
+* Copyright (c) 2017 ARM Limited
 *
-* This program is free software. Terms of the GNU General Public License apply.
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
 *
-* This program is distributed WITHOUT ANY WARRANTY, without even the implied
-* warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See the GNU General Public License for more details.a
+*     http://www.apache.org/licenses/LICENSE-2.0
 *
-* A copy of the GNU General Public License if found in the file "Licence.txt"
-* deliverd along with this program; if not, write to the Free Software
-* Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*
-* Parts or all of this source code may only be reused within other GNU free, open
-* source, software.
-* So if your project is not an open source project, you are non entitled to read
-* any further below this line!
-*
-*******************************************************************************/
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 
-#ifndef _JPATCH_BD_FILE_
-#define _JPATCH_BD_FILE_
+#ifndef _JANPATCH_BD_FILE_
+#define _JANPATCH_BD_FILE_
 
 #include "BlockDevice.h"
 
@@ -45,7 +41,7 @@ public:
      * @param pos New position
      * @param origin Seek position
      */
-    int fseek(int pos, uint8_t origin) {
+    int fseek(long int pos, int origin) {
         switch (origin) {
             case SEEK_SET: { // from beginning
                 current_pos = pos;
@@ -85,8 +81,8 @@ public:
      * Writes a character to the stream, ups the position with 1
      * @param c Character to write
      */
-    int putc(char c) {
-        char buff[] = { c };
+    int putc(int c) {
+        char buff[] = { (char)c };
         if (bd->program(buff, current_pos + offset, 1) != 0) {
             return -1;
         }
@@ -97,7 +93,7 @@ public:
         return 0;
     }
 
-    int fread(void *buffer, size_t elements, size_t size) {
+    size_t fread(void *buffer, size_t elements, size_t size) {
         int r = bd->read(buffer, offset + current_pos, elements * size);
         if (r != 0) return -1;
 
@@ -106,7 +102,7 @@ public:
         return elements * size;
     }
 
-    int fwrite(void *buffer, size_t elements, size_t size) {
+    size_t fwrite(const void *buffer, size_t elements, size_t size) {
         int r = bd->program(buffer, offset + current_pos, elements * size);
         if (r != 0) return -1;
 
@@ -115,7 +111,7 @@ public:
         return elements * size;
     }
 
-    int ftell() {
+    long int ftell() {
         return current_pos;
     }
 
@@ -127,24 +123,28 @@ private:
 };
 
 // Functions similar to the POSIX functions
-int bd_fseek(BDFILE *file, int pos, uint8_t origin) {
+int bd_fseek(BDFILE *file, long int pos, int origin) {
     return file->fseek(pos, origin);
+}
+
+long int bd_ftell(BDFILE *file) {
+    return file->ftell();
 }
 
 int bd_getc(BDFILE *file) {
     return file->getc();
 }
 
-int bd_putc(char c, BDFILE *file) {
+int bd_putc(int c, BDFILE *file) {
     return file->putc(c);
 }
 
-int bd_fread(void *buffer, size_t elements, size_t size, BDFILE *file) {
+size_t bd_fread(void *buffer, size_t elements, size_t size, BDFILE *file) {
     return file->fread(buffer, elements, size);
 }
 
-int bd_fwrite(void *buffer, size_t elements, size_t size, BDFILE *file) {
+size_t bd_fwrite(const void *buffer, size_t elements, size_t size, BDFILE *file) {
     return file->fwrite(buffer, elements, size);
 }
 
-#endif // _JPATCH_BD_FILE_
+#endif // _JANPATCH_BD_FILE_

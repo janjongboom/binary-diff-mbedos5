@@ -1,4 +1,5 @@
 {
+    "macros": ["JANPATCH_STREAM=BDFILE"],
     "target_overrides": {
         "XDOT_L151CC": {
             "target.bootloader_img": "bootloader/xdot-at45-develop.bin"
