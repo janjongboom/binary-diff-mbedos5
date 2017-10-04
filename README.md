@@ -1,6 +1,8 @@
-# Binary diff application demo
+# Binary diff application demo - SD card
 
-Using [JojoDiff](http://jojodiff.sourceforge.net). Does binary diffing using FATFileSystem on Mbed OS 5.
+Using [JANPatch](https://github.com/janjongboom/janpatch). Does binary patching of firmware using FATFileSystem on Mbed OS 5.
+
+**[There is also a demo which uses BlockDevice instead.](http://github.com/janjongboom/binary-diff-mbedos5/tree/xdot)**
 
 Takes:
 
@@ -11,7 +13,7 @@ Produces:
 
 * A new binary.
 
-This application does not use dynamically allocated memory. See the `BLKSZE` macro.
+This application does not use dynamically allocated memory. See macro in `main.cpp`.
 
 ## Usage
 
@@ -24,17 +26,14 @@ This application does not use dynamically allocated memory. See the `BLKSZE` mac
     ```
 
 1. Run the application and inspect serial output (on baud rate 9,600).
-1. When the application is done, inspect the SD card. `blinky-k64f-new.bin` should have appeared, and it should match the file in the demo directory.
+1. When the application is done, inspect the SD card. `blinky-k64f-new.bin` should have appeared, and it should match the file in the demo directory:
+
+    ```
+    $ diff /Volumes/SD/blinky-k64f-new.bin demo/blinky-k64f-new.bin
+
+    # should not return anything
+    ```
 
 ## How to create diffs
 
-* Build jdiff from source.
-* Generate a patch file:
-
-    ```
-    $ ./jdiff blinky-k64f-old.bin blinky-k64f-new.bin > blinky-k64f.patch
-    ```
-
-## License
-
-This application is licensed under GPLv3, due to JojoDiff being licensed under GPL. I've made [a request](https://sourceforge.net/p/jojodiff/discussion/190623/thread/39eb393e/) to re-license under LGPL, so this program can be licensed under Apache 2.0, like the rest of Mbed.
+See the documentation for [JANPatch](https://github.com/janjongboom/janpatch).

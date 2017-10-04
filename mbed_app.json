@@ -1,4 +1,5 @@
 {
+    "macros": ["JANPATCH_STREAM=FILE"],
     "config": {
         "sd_card_mosi": {
             "help": "MCU pin connected to the SD card's SPI MOSI pin",
