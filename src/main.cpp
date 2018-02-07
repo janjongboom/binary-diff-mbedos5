@@ -7,6 +7,10 @@ SDBlockDevice sd(MBED_CONF_APP_SD_CARD_MOSI, MBED_CONF_APP_SD_CARD_MISO,
     MBED_CONF_APP_SD_CARD_SCK, MBED_CONF_APP_SD_CARD_CS);
 FATFileSystem fs("sd");
 
+void progress(uint8_t percentage) {
+    printf("Progress: %d%%\n", percentage);
+}
+
 int main()
 {
     sd.init();
@@ -20,27 +24,37 @@ int main()
     FILE *patch  = fopen(patchPath, "rb");
     FILE *target = fopen(targetPath, "wb");
 
-    printf("made files? %p %p %p\n", source, patch, target);
+    printf("Opened files? source=%p patch=%p target=%p\n", source, patch, target);
+    if (source == NULL || patch == NULL || target == NULL) {
+        return 1;
+    }
+
+    printf("Patching...\n");
 
     // janpatch_ctx contains buffers, and references to the file system functions
     janpatch_ctx ctx = {
-        (char*)malloc(1024),
-        1024,
+        { (unsigned char*)malloc(1024), 1024 },
+        { (unsigned char*)malloc(1024), 1024 },
+        { (unsigned char*)malloc(1024), 1024 },
 
-        &getc,
-        &putc,
         &fread,
         &fwrite,
         &fseek,
-        &ftell
+        &ftell,
+
+        &progress
     };
 
-    janpatch(ctx, source, patch, target);
+    int jpr = janpatch(ctx, source, patch, target);
+    if (jpr != 0) {
+        printf("Patching failed... (%d)\n", jpr);
+        return 1;
+    }
 
     // Close files
     fclose(source);
     fclose(patch);
     fclose(target);
 
-    printf("I'm done!\n");
+    printf("Done!\n");
 }
