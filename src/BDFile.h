@@ -63,52 +63,29 @@ public:
         return 0;
     }
 
-    /**
-     * Retrieves character on current position and ups position of the stream with 1
-     */
-    int getc() {
-        if (current_pos >= size) return -1;
-
-        char buff[1];
-        if (bd->read(buff, current_pos + offset, 1) != 0) {
-            return -1;
+    size_t fread(void *buffer, size_t elements, size_t element_size) {
+        size_t bytes_to_read = elements * element_size;
+        if (current_pos + bytes_to_read > size) {
+            bytes_to_read = size - current_pos; // don't read over file boundary
         }
-        current_pos++;
-        return buff[0];
-    }
 
-    /**
-     * Writes a character to the stream, ups the position with 1
-     * @param c Character to write
-     */
-    int putc(int c) {
-        char buff[] = { (char)c };
-        if (bd->program(buff, current_pos + offset, 1) != 0) {
-            return -1;
-        }
-        current_pos++;
-        if (current_pos > size) {
-            size = current_pos; // not really sure if this is OK
-        }
-        return 0;
-    }
-
-    size_t fread(void *buffer, size_t elements, size_t size) {
-        int r = bd->read(buffer, offset + current_pos, elements * size);
+        int r = bd->read(buffer, offset + current_pos, bytes_to_read);
         if (r != 0) return -1;
 
-        current_pos += (elements * size);
+        current_pos += bytes_to_read;
 
-        return elements * size;
+        return bytes_to_read;
     }
 
-    size_t fwrite(const void *buffer, size_t elements, size_t size) {
-        int r = bd->program(buffer, offset + current_pos, elements * size);
+    size_t fwrite(const void *buffer, size_t elements, size_t element_size) {
+        int r = bd->program(buffer, offset + current_pos, elements * element_size);
         if (r != 0) return -1;
 
-        current_pos += (elements * size);
+        current_pos += (elements * element_size);
 
-        return elements * size;
+        if (current_pos > size) size = current_pos;
+
+        return elements * element_size;
     }
 
     long int ftell() {
@@ -129,14 +106,6 @@ int bd_fseek(BDFILE *file, long int pos, int origin) {
 
 long int bd_ftell(BDFILE *file) {
     return file->ftell();
-}
-
-int bd_getc(BDFILE *file) {
-    return file->getc();
-}
-
-int bd_putc(int c, BDFILE *file) {
-    return file->putc(c);
 }
 
 size_t bd_fread(void *buffer, size_t elements, size_t size, BDFILE *file) {

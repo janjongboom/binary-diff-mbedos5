@@ -23,6 +23,10 @@
 #include "FragmentationSha256.h"
 #include "update_params.h"
 
+void progress(uint8_t percentage) {
+    printf("Patch progress: %d%%\n", percentage);
+}
+
 int main()
 {
     // 1. Put original file in 0x1900
@@ -35,35 +39,40 @@ int main()
     // OK, let's give it a try...
     int r;
     r = at45.program(ORIGINAL, 0x1900 * at45.get_read_size(), sizeof(ORIGINAL));
-    printf("Programming ORIGINAL in page 0x1900, r=%d\n", r);
-
-    printf("sizeof patch is %d\n", sizeof(PATCH));
+    printf("Programmed ORIGINAL in page 0x1900, r=%d\n", r);
 
     r = at45.program(PATCH, 0x1801 * at45.get_read_size(), sizeof(PATCH));
-    printf("Programming PATCH in page 0x1801, r=%d\n", r);
+    printf("Programmed PATCH in page 0x1801, r=%d\n", r);
 
     BDFILE originalFile(&at45, 0x1900 * at45.get_read_size(), sizeof(ORIGINAL));
     BDFILE patchFile(&at45, 0x1801 * at45.get_read_size(), sizeof(PATCH));
     BDFILE newFile(&at45, 0x2000 * at45.get_read_size(), 0);
 
-    printf("HELLO WORLD\n");
+    printf("Starting patching...\n");
 
     janpatch_ctx ctx = {
-        (char*)malloc(1024),
-        1024,       // buffer size
+        { (unsigned char*)malloc(1024), 1024 }, // source buffer
+        { (unsigned char*)malloc(1024), 1024 }, // diff buffer
+        { (unsigned char*)malloc(1024), 1024 }, // target buffer
 
-        &bd_getc,
-        &bd_putc,
         &bd_fread,
         &bd_fwrite,
         &bd_fseek,
-        &bd_ftell
+        &bd_ftell,
+
+        &progress
     };
 
     /* Go... */
-    janpatch(ctx, &originalFile, &patchFile, &newFile);
+    int jpr = janpatch(ctx, &originalFile, &patchFile, &newFile);
+    if (jpr != 0) {
+        printf("Patching failed... %d\n", r);
+        return 1;
+    }
 
-    printf("new size is %ld\n", newFile.ftell());
+    printf("Patching OK: New size is %ld\n", newFile.ftell());
+
+    printf("Calculating SHA256 hash...\n");
 
     uint8_t* sha_buffer = (uint8_t*)malloc(528);
     unsigned char sha_out[32];
@@ -106,7 +115,7 @@ int main()
 
     printf("Stored the update parameters in flash on page 0x%x. Reset the board to apply update.\n", FOTA_INFO_PAGE);
 
-    printf("I'm done!\n");
+    printf("Done!\n");
 
     exit(0);
 }
