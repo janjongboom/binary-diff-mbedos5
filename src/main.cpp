@@ -27,6 +27,11 @@ void progress(uint8_t percentage) {
     printf("Patch progress: %d%%\n", percentage);
 }
 
+Semaphore wait_for_update(0);
+void btn_press() {
+    wait_for_update.release();
+}
+
 int main()
 {
     // 1. Put original file in 0x1900
@@ -78,7 +83,6 @@ int main()
     unsigned char sha_out[32];
 
     FragmentationSha256 sha256(&at45, sha_buffer, sizeof(sha_buffer));
-    // first 256 bytes are the RSA/SHA256 signature, ignore those
     sha256.calculate(
         0x2000 * at45.get_read_size(),
         newFile.ftell(),
@@ -111,11 +115,18 @@ int main()
     update_params.offset = 0x2000 * at45.get_read_size();
     update_params.signature = UpdateParams_t::MAGIC;
     memcpy(update_params.sha256_hash, sha_out, sizeof(sha_out));
+
+    printf("SHA256 hash matches. Press button GPIO1 to perform update.\n");
+
+    InterruptIn btn(GPIO1);
+    btn.mode(PullUp);
+    btn.fall(&btn_press);
+
+    wait_for_update.wait(); // wait for semaphore to be released (by clicking BUTTON1)
+
     at45.program(&update_params, FOTA_INFO_PAGE * at45.get_read_size(), sizeof(UpdateParams_t));
 
-    printf("Stored the update parameters in flash on page 0x%x. Reset the board to apply update.\n", FOTA_INFO_PAGE);
+    printf("Stored the update parameters in flash on page 0x%x. Restarting...\n", FOTA_INFO_PAGE);
 
-    printf("Done!\n");
-
-    exit(0);
+    NVIC_SystemReset();
 }
